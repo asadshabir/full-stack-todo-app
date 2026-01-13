@@ -1,0 +1,8 @@
+Requirement already satisfied: sqlmodel in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (0.0.14)
+Requirement already satisfied: SQLAlchemy<2.1.0,>=2.0.0 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from sqlmodel) (2.0.45)
+Requirement already satisfied: pydantic<3.0.0,>=1.10.13 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from sqlmodel) (2.12.5)
+Requirement already satisfied: annotated-types>=0.6.0 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from pydantic<3.0.0,>=1.10.13->sqlmodel) (0.7.0)
+Requirement already satisfied: pydantic-core==2.41.5 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from pydantic<3.0.0,>=1.10.13->sqlmodel) (2.41.5)
+Requirement already satisfied: typing-extensions>=4.14.1 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from pydantic<3.0.0,>=1.10.13->sqlmodel) (4.15.0)
+Requirement already satisfied: typing-inspection>=0.4.2 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from pydantic<3.0.0,>=1.10.13->sqlmodel) (0.4.2)
+Requirement already satisfied: greenlet>=1 in c:\users\asad shabir\appdata\local\programs\python\python314\lib\site-packages (from SQLAlchemy<2.1.0,>=2.0.0->sqlmodel) (3.3.0)

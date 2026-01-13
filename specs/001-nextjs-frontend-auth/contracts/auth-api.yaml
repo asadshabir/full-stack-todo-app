@@ -1,0 +1,407 @@
+openapi: 3.0.3
+info:
+  title: Authentication API
+  description: |
+    REST API for user authentication using Better Auth on frontend and JWT verification on FastAPI backend.
+    Frontend issues JWT tokens via Better Auth, backend verifies them for protected endpoints.
+  version: 1.0.0
+  contact:
+    name: Phase II Development Team
+    email: dev@example.com
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: https://api.production.com
+    description: Production server
+
+tags:
+  - name: Authentication
+    description: User registration, login, and session management
+
+paths:
+  /auth/signup:
+    post:
+      summary: Register a new user account
+      description: |
+        Creates a new user account with email and password. Password is hashed before storage.
+        Returns user object and JWT token for immediate authentication.
+      operationId: signUp
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignUpRequest'
+            examples:
+              validSignup:
+                summary: Valid signup request
+                value:
+                  email: user@example.com
+                  password: SecurePassword123
+                  name: John Doe
+      responses:
+        '201':
+          description: User created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  summary: Successful signup
+                  value:
+                    data:
+                      user:
+                        id: "550e8400-e29b-41d4-a716-446655440000"
+                        email: user@example.com
+                        name: John Doe
+                        createdAt: "2026-01-08T14:30:00Z"
+                      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      expiresAt: "2026-01-15T14:30:00Z"
+                    message: "Account created successfully"
+                    timestamp: "2026-01-08T14:30:00Z"
+        '400':
+          description: Invalid input or email already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                emailExists:
+                  summary: Email already registered
+                  value:
+                    statusCode: 400
+                    message: "Email already registered"
+                    code: "AUTH_EMAIL_EXISTS"
+                    timestamp: "2026-01-08T14:30:00Z"
+                validationError:
+                  summary: Validation error
+                  value:
+                    statusCode: 400
+                    message: "Validation failed"
+                    code: "VALIDATION_ERROR"
+                    details:
+                      email: ["Invalid email format"]
+                      password: ["Password must be at least 8 characters"]
+                    timestamp: "2026-01-08T14:30:00Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signin:
+    post:
+      summary: Authenticate user and receive JWT token
+      description: |
+        Authenticates user with email and password. Returns JWT token valid for 7 days (or longer if rememberMe=true).
+      operationId: signIn
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignInRequest'
+            examples:
+              validSignin:
+                summary: Valid signin request
+                value:
+                  email: user@example.com
+                  password: SecurePassword123
+                  rememberMe: false
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthSuccessResponse'
+              examples:
+                success:
+                  summary: Successful signin
+                  value:
+                    data:
+                      user:
+                        id: "550e8400-e29b-41d4-a716-446655440000"
+                        email: user@example.com
+                        name: John Doe
+                        createdAt: "2026-01-08T14:30:00Z"
+                      token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      expiresAt: "2026-01-15T14:30:00Z"
+                    message: "Sign in successful"
+                    timestamp: "2026-01-08T14:30:00Z"
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidCredentials:
+                  summary: Invalid email or password
+                  value:
+                    statusCode: 401
+                    message: "Invalid email or password"
+                    code: "AUTH_INVALID_CREDENTIALS"
+                    timestamp: "2026-01-08T14:30:00Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/signout:
+    post:
+      summary: Sign out user and invalidate token
+      description: |
+        Invalidates the current JWT token. Frontend should clear stored token after successful signout.
+      operationId: signOut
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Sign out successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Signed out successfully"
+                  timestamp:
+                    type: string
+                    format: date-time
+                    example: "2026-01-08T14:30:00Z"
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/me:
+    get:
+      summary: Get current authenticated user information
+      description: |
+        Returns information about the currently authenticated user based on JWT token.
+        Useful for verifying token validity and fetching updated user data.
+      operationId: getCurrentUser
+      tags:
+        - Authentication
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User information retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/User'
+                  timestamp:
+                    type: string
+                    format: date-time
+              examples:
+                success:
+                  summary: Current user info
+                  value:
+                    data:
+                      id: "550e8400-e29b-41d4-a716-446655440000"
+                      email: user@example.com
+                      name: John Doe
+                      createdAt: "2026-01-08T14:30:00Z"
+                      updatedAt: "2026-01-08T16:45:00Z"
+                    timestamp: "2026-01-08T14:30:00Z"
+        '401':
+          description: Unauthorized (missing or invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT token issued by Better Auth after successful signup/signin.
+        Format: "Bearer <token>"
+
+  schemas:
+    User:
+      type: object
+      required:
+        - id
+        - email
+        - createdAt
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique user identifier
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        email:
+          type: string
+          format: email
+          description: User's email address (used for authentication)
+          example: user@example.com
+        name:
+          type: string
+          nullable: true
+          description: User's full name (optional)
+          example: John Doe
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when account was created (ISO 8601)
+          example: "2026-01-08T14:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp of last account update (ISO 8601)
+          example: "2026-01-08T16:45:00Z"
+
+    SignUpRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: |
+            User's password. Must meet requirements:
+            - At least 8 characters
+            - At least one uppercase letter
+            - At least one lowercase letter
+            - At least one number
+          example: SecurePassword123
+        name:
+          type: string
+          nullable: true
+          description: User's full name (optional)
+          example: John Doe
+
+    SignInRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: user@example.com
+        password:
+          type: string
+          format: password
+          description: User's password
+          example: SecurePassword123
+        rememberMe:
+          type: boolean
+          default: false
+          description: Extends token expiration if true (30 days vs 7 days)
+          example: false
+
+    AuthSuccessResponse:
+      type: object
+      required:
+        - data
+        - message
+      properties:
+        data:
+          type: object
+          required:
+            - user
+            - token
+            - expiresAt
+          properties:
+            user:
+              $ref: '#/components/schemas/User'
+            token:
+              type: string
+              description: JWT access token (use in Authorization header)
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiNTUwZTg0MDAtZTI5Yi00MWQ0LWE3MTYtNDQ2NjU1NDQwMDAwIiwiZW1haWwiOiJ1c2VyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzM2NDUwNDAwfQ.abc123"
+            expiresAt:
+              type: string
+              format: date-time
+              description: Timestamp when token expires (ISO 8601)
+              example: "2026-01-15T14:30:00Z"
+            refreshToken:
+              type: string
+              nullable: true
+              description: Optional refresh token for renewing access token
+              example: "refresh_abc123xyz"
+        message:
+          type: string
+          description: Human-readable success message
+          example: "Sign in successful"
+        timestamp:
+          type: string
+          format: date-time
+          description: Server timestamp when response was generated
+          example: "2026-01-08T14:30:00Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - message
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code
+          example: 400
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid email format"
+        code:
+          type: string
+          nullable: true
+          description: Machine-readable error code for client handling
+          example: "AUTH_INVALID_CREDENTIALS"
+        details:
+          type: object
+          nullable: true
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          description: |
+            Detailed validation errors (for 400 Bad Request).
+            Key = field name, Value = array of error messages.
+          example:
+            email: ["Invalid email format"]
+            password: ["Password too short"]
+        timestamp:
+          type: string
+          format: date-time
+          description: Server timestamp when error occurred
+          example: "2026-01-08T14:30:00Z"
+
+security:
+  - BearerAuth: []
