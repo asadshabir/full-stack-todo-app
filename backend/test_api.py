@@ -25,7 +25,7 @@ class APITester:
 
     def print_result(self, test_name: str, success: bool, response: Optional[requests.Response] = None):
         """Print test result with formatting."""
-        status = "✅ PASS" if success else "❌ FAIL"
+        status = "[PASS]" if success else "[FAIL]"
         print(f"{status} - {test_name}")
         if response and not success:
             print(f"   Status: {response.status_code}")
@@ -40,7 +40,7 @@ class APITester:
             self.print_result("Health Check", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Health Check: {e}\n")
+            print(f"[FAIL] - Health Check: {e}\n")
             return False
 
     def test_signup(self):
@@ -68,7 +68,7 @@ class APITester:
             self.print_result("User Signup", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - User Signup: {e}\n")
+            print(f"[FAIL] FAIL - User Signup: {e}\n")
             return False
 
     def test_signin(self):
@@ -89,7 +89,7 @@ class APITester:
             self.print_result("User Signin", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - User Signin: {e}\n")
+            print(f"[FAIL] FAIL - User Signin: {e}\n")
             return False
 
     def test_get_me(self):
@@ -105,7 +105,7 @@ class APITester:
             self.print_result("Get Current User", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Get Current User: {e}\n")
+            print(f"[FAIL] FAIL - Get Current User: {e}\n")
             return False
 
     def test_create_todo(self):
@@ -133,7 +133,7 @@ class APITester:
             self.print_result("Create Todo", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Create Todo: {e}\n")
+            print(f"[FAIL] FAIL - Create Todo: {e}\n")
             return False
 
     def test_get_todos(self):
@@ -154,7 +154,7 @@ class APITester:
             self.print_result("Get Todos", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Get Todos: {e}\n")
+            print(f"[FAIL] FAIL - Get Todos: {e}\n")
             return False
 
     def test_update_todo(self):
@@ -178,7 +178,7 @@ class APITester:
             self.print_result("Update Todo", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Update Todo: {e}\n")
+            print(f"[FAIL] FAIL - Update Todo: {e}\n")
             return False
 
     def test_toggle_todo(self):
@@ -199,7 +199,7 @@ class APITester:
             self.print_result("Toggle Todo Completion", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Toggle Todo: {e}\n")
+            print(f"[FAIL] FAIL - Toggle Todo: {e}\n")
             return False
 
     def test_delete_todo(self):
@@ -218,7 +218,7 @@ class APITester:
             self.print_result("Delete Todo", success, response)
             return success
         except Exception as e:
-            print(f"❌ FAIL - Delete Todo: {e}\n")
+            print(f"[FAIL] FAIL - Delete Todo: {e}\n")
             return False
 
     def run_all_tests(self):
@@ -266,16 +266,16 @@ def main():
         success = tester.run_all_tests()
 
         if success:
-            print("\n✅ All tests passed!")
+            print("\n[PASS] All tests passed!")
             exit(0)
         else:
-            print("\n❌ Some tests failed. Check the output above.")
+            print("\n[FAIL] Some tests failed. Check the output above.")
             exit(1)
     except KeyboardInterrupt:
         print("\n\n⚠️  Tests interrupted by user")
         exit(1)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n[FAIL] Unexpected error: {e}")
         exit(1)
 
 
