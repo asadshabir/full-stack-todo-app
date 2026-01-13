@@ -68,7 +68,10 @@
       "Bash(git clean -fd)",
       "Bash(del tmpclaude-*.cwd)",
       "Bash(powershell rm tmpclaude-*.cwd)",
-      "Bash(git reset)"
+      "Bash(git reset)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFix Vercel deployment issues and resolve build errors\n\n- Fixed invalid remotePatterns in next.config.js to prevent build failures\n- Corrected middleware matcher regex to avoid capturing groups issue\n- Removed conflicting headers from vercel.json to prevent duplication\n- Fixed unescaped entities in JSX components\n- Resolved type mismatches between frontend and backend APIs\n- Added proper return types to API methods\n- Fixed unused variable causing build failures\n- Updated API integration to handle proper data transformation\n\nCo-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git push origin main)",
+      "Bash(git commit -m \"Fix TodoFormData type import in API client\n\n- Added missing TodoFormData import to api.ts\n- This resolves the build error that was preventing successful compilation\n- The application now builds successfully for Vercel deployment\")"
     ]
   }
 }

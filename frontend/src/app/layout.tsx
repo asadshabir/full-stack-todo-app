@@ -9,9 +9,6 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Task Manager - Professional Todo Application",
   description: "A professional-grade task management application with modern UI/UX",
-  icons: {
-    icon: "/favicon.ico",
-  },
 }
 
 export default function RootLayout({

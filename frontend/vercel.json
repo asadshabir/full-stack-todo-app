@@ -1,14 +1,4 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm run build",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
-  "outputDirectory": ".next",
-  "regions": ["iad1"],
-  "functions": {
-    "app/**": {
-      "memory": 3008,
-      "maxDuration": 10
-    }
-  }
+  "regions": ["iad1"]
 }
