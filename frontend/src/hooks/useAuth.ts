@@ -41,14 +41,14 @@ export function useAuth() {
     const loadSession = async () => {
       try {
         if (apiClient.isAuthenticated()) {
-          const userData = await apiClient.getMe()
-          // Create a session object from the user data
+          const userData: User = await apiClient.getMe()
+          // Create a session object from the user data (transform snake_case to camelCase)
           const sessionData: Session = {
             user: {
               id: userData.id,
               email: userData.email,
               name: userData.name,
-              createdAt: userData.created_at,
+              createdAt: (userData as any).created_at || userData.createdAt,
             },
             token: localStorage.getItem('access_token') || '',
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
@@ -87,13 +87,13 @@ export function useAuth() {
         // Store the token in localStorage
         localStorage.setItem('access_token', result.access_token)
 
-        // Create a session object from the user data
+        // Create a session object from the user data (transform snake_case to camelCase)
         const sessionData: Session = {
           user: {
             id: result.user.id,
             email: result.user.email,
             name: result.user.name,
-            createdAt: result.user.created_at,
+            createdAt: (result.user as any).created_at || result.user.createdAt,
           },
           token: result.access_token,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
@@ -141,13 +141,13 @@ export function useAuth() {
         // Store the token in localStorage
         localStorage.setItem('access_token', result.access_token)
 
-        // Create a session object from the user data
+        // Create a session object from the user data (transform snake_case to camelCase)
         const sessionData: Session = {
           user: {
             id: result.user.id,
             email: result.user.email,
             name: result.user.name,
-            createdAt: result.user.created_at,
+            createdAt: (result.user as any).created_at || result.user.createdAt,
           },
           token: result.access_token,
           expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now

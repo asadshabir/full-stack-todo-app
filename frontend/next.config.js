@@ -11,36 +11,22 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**.example.com',
+        hostname: 'localhost',
       },
-    ],
-  },
-
-  // Custom headers for security
-  async headers() {
-    return [
       {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN'
-          },
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff'
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin'
-          }
-        ],
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
       },
-    ]
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      // Add your production domains here after deployment
+      // {
+      //   protocol: 'https',
+      //   hostname: 'yourdomain.com',
+      // },
+    ],
   },
 
   // Environment variables validation

@@ -62,7 +62,13 @@
       "Bash(jq:*)",
       "Bash(git rev-parse:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git checkout:*)",
+      "Bash(grep -A 10 -B 10 \"Error: \\\\`''\")",
+      "Bash(git clean -fd)",
+      "Bash(del tmpclaude-*.cwd)",
+      "Bash(powershell rm tmpclaude-*.cwd)",
+      "Bash(git reset)"
     ]
   }
 }

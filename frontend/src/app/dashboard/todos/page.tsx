@@ -27,9 +27,6 @@ import type { Todo, TodoPriority, TodoCategory, TodoFormData } from "@/types/tod
  * Features: Full CRUD operations, API persistence, toast notifications
  */
 
-// Get current ISO date string
-const getCurrentDate = () => new Date().toISOString().split("T")[0]
-
 export default function TodoDashboard() {
   const { toast } = useToast()
 
@@ -183,8 +180,15 @@ export default function TodoDashboard() {
         }
       }
 
+      // Transform TodoFormData to API format
+      const todoForApi = {
+        ...formData,
+        status: "pending" as const,
+        completed: false,
+      };
+
       // Create todo via API
-      const newTodo = await apiClient.createTodo(formData)
+      const newTodo = await apiClient.createTodo(todoForApi)
 
       // Update local state
       setTodos((prev) => [newTodo, ...prev])
@@ -319,7 +323,7 @@ export default function TodoDashboard() {
   const handleDeleteTodo = async (id: string) => {
     const todo = todos.find((t) => t.id === id)
 
-    if (confirm(`Are you sure you want to delete "${todo?.title}"?`)) {
+    if (confirm("Are you sure you want to delete \"" + (todo?.title || "") + "\"?")) {
       try {
         // Cancel any scheduled reminder
         cancelReminderForTodo(id)
