@@ -11,7 +11,7 @@ import type { NextRequest } from "next/server"
  * This middleware just passes through all requests.
  */
 
-export async function middleware(request: NextRequest) {
+export async function middleware(_request: NextRequest) {
   // Allow all requests - auth is handled client-side
   return NextResponse.next()
 }
