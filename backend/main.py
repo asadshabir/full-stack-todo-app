@@ -1,8 +1,10 @@
-from fastapi import FastAPI, status, HTTPException
+from fastapi import FastAPI, status, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import os
 import sys
+import traceback
 from dotenv import load_dotenv
 
 # Load environment variables FIRST before any other imports
@@ -55,10 +57,9 @@ async def lifespan(app: FastAPI):
                 from utils.database import get_engine
                 from sqlmodel import SQLModel
                 engine = get_engine()
-                # Drop existing tables and recreate them to ensure correct schema
-                SQLModel.metadata.drop_all(engine)
+                # Create tables if they don't exist (don't drop existing data)
                 SQLModel.metadata.create_all(engine)
-                print("[SUCCESS] Database tables recreated with correct schema")
+                print("[SUCCESS] Database tables verified/created")
             except Exception as table_error:
                 print(f"[WARNING] Table creation error: {table_error}")
                 _db_error_message = f"Table creation failed: {table_error}"
@@ -115,6 +116,23 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(todos_router)
+
+
+# Global exception handler for debugging
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions and return detailed error info."""
+    error_detail = {
+        "error": str(exc),
+        "type": type(exc).__name__,
+        "path": str(request.url.path),
+        "traceback": traceback.format_exc()
+    }
+    print(f"[UNHANDLED ERROR] {error_detail}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "type": type(exc).__name__}
+    )
 
 
 @app.get("/", status_code=status.HTTP_200_OK)
