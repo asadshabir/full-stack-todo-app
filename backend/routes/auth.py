@@ -35,49 +35,58 @@ async def signup(
     Raises:
         HTTPException: 400 if email already exists
     """
-    # Check if user already exists
-    statement = select(User).where(User.email == user_data.email)
-    existing_user = session.exec(statement).first()
+    try:
+        # Check if user already exists
+        statement = select(User).where(User.email == user_data.email)
+        existing_user = session.exec(statement).first()
 
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+
+        # Hash password
+        password_hash = hash_password(user_data.password)
+
+        # Create new user
+        new_user = User(
+            email=user_data.email,
+            password_hash=password_hash,
+            name=user_data.name
         )
 
-    # Hash password
-    password_hash = hash_password(user_data.password)
+        session.add(new_user)
+        session.commit()
+        session.refresh(new_user)
 
-    # Create new user
-    new_user = User(
-        email=user_data.email,
-        password_hash=password_hash,
-        name=user_data.name
-    )
+        # Generate JWT token
+        access_token = create_access_token(data={"sub": str(new_user.id)})
 
-    session.add(new_user)
-    session.commit()
-    session.refresh(new_user)
+        # Set JWT token as HTTP-only cookie
+        response.set_cookie(
+            key=COOKIE_NAME,
+            value=access_token,
+            httponly=True,
+            max_age=COOKIE_MAX_AGE,
+            samesite="lax",
+            secure=True
+        )
 
-    # Generate JWT token
-    access_token = create_access_token(data={"sub": str(new_user.id)})
-
-    # Set JWT token as HTTP-only cookie
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=access_token,
-        httponly=True,
-        max_age=COOKIE_MAX_AGE,
-        samesite="lax",
-        secure=False  # Set to True in production with HTTPS
-    )
-
-    # Return token and user data
-    return Token(
-        access_token=access_token,
-        token_type="bearer",
-        user=UserResponse.model_validate(new_user)
-    )
+        # Return token and user data
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            user=UserResponse.model_validate(new_user)
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[AUTH ERROR] Signup failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Signup failed: {str(e)}"
+        )
 
 
 @router.post("/signin", response_model=Token)
@@ -100,50 +109,59 @@ async def signin(
     Raises:
         HTTPException: 401 if credentials are invalid
     """
-    # Find user by email
-    statement = select(User).where(User.email == user_data.email)
-    user = session.exec(statement).first()
+    try:
+        # Find user by email
+        statement = select(User).where(User.email == user_data.email)
+        user = session.exec(statement).first()
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Verify password
+        if not verify_password(user_data.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Update last login timestamp
+        user.updated_at = datetime.utcnow()
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+
+        # Generate JWT token
+        access_token = create_access_token(data={"sub": str(user.id)})
+
+        # Set JWT token as HTTP-only cookie
+        response.set_cookie(
+            key=COOKIE_NAME,
+            value=access_token,
+            httponly=True,
+            max_age=COOKIE_MAX_AGE,
+            samesite="lax",
+            secure=True
         )
 
-    # Verify password
-    if not verify_password(user_data.password, user.password_hash):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        # Return token and user data
+        return Token(
+            access_token=access_token,
+            token_type="bearer",
+            user=UserResponse.model_validate(user)
         )
-
-    # Update last login timestamp
-    user.updated_at = datetime.utcnow()
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-
-    # Generate JWT token
-    access_token = create_access_token(data={"sub": str(user.id)})
-
-    # Set JWT token as HTTP-only cookie
-    response.set_cookie(
-        key=COOKIE_NAME,
-        value=access_token,
-        httponly=True,
-        max_age=COOKIE_MAX_AGE,
-        samesite="lax",
-        secure=False  # Set to True in production with HTTPS
-    )
-
-    # Return token and user data
-    return Token(
-        access_token=access_token,
-        token_type="bearer",
-        user=UserResponse.model_validate(user)
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[AUTH ERROR] Signin failed: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Signin failed: {str(e)}"
+        )
 
 
 @router.get("/me", response_model=UserResponse)
