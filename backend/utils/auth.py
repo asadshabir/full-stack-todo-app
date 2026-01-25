@@ -32,7 +32,9 @@ def hash_password(password: str) -> str:
     Example:
         hashed = hash_password("mypassword123")
     """
-    return pwd_context.hash(password)
+    # Truncate password to 72 bytes (bcrypt limit)
+    password_bytes = password.encode('utf-8')[:72]
+    return pwd_context.hash(password_bytes.decode('utf-8', errors='ignore'))
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -49,7 +51,9 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Example:
         is_valid = verify_password("mypassword123", user.password_hash)
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Truncate password to 72 bytes (bcrypt limit)
+    password_bytes = plain_password.encode('utf-8')[:72]
+    return pwd_context.verify(password_bytes.decode('utf-8', errors='ignore'), hashed_password)
 
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
