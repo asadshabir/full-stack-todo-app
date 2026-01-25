@@ -4,27 +4,15 @@ import type { NextRequest } from "next/server"
 /**
  * Authentication Middleware
  *
- * Protects routes by checking for Better Auth session
- * Redirects unauthenticated users to /signin
+ * Note: Since we use localStorage for JWT tokens (cross-origin from Hugging Face),
+ * we can't check auth in middleware (server-side). Auth is handled client-side
+ * in the useAuth hook and dashboard components.
+ *
+ * This middleware just passes through all requests.
  */
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Check if user is accessing a protected route
-  if (pathname.startsWith("/dashboard")) {
-    // Check for JWT access token in cookie
-    const accessToken = request.cookies.get("access_token")
-
-    if (!accessToken) {
-      // No session found, redirect to sign-in
-      const signInUrl = new URL("/signin", request.url)
-      signInUrl.searchParams.set("from", pathname)
-      return NextResponse.redirect(signInUrl)
-    }
-  }
-
-  // Allow request to continue
+  // Allow all requests - auth is handled client-side
   return NextResponse.next()
 }
 
