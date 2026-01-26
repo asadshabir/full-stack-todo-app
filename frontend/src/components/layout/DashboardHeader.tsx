@@ -6,7 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { AnimatedButton } from "@/components/ui/animated-button"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { CheckSquare, Menu, X, LayoutDashboard, ListTodo, LogOut, Sparkles, User } from "lucide-react"
+import { CheckSquare, Menu, X, LayoutDashboard, ListTodo, LogOut, Sparkles, User, MessageSquare } from "lucide-react"
 
 /**
  * DashboardHeader Component
@@ -30,6 +30,12 @@ export function DashboardHeader({ onSignOut, userEmail }: DashboardHeaderProps) 
       href: "/dashboard",
       icon: LayoutDashboard,
       active: pathname === "/dashboard"
+    },
+    {
+      label: "AI Chat",
+      href: "/dashboard/chat",
+      icon: MessageSquare,
+      active: pathname === "/dashboard/chat"
     },
     {
       label: "Todos",

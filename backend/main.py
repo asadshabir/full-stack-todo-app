@@ -1,203 +1,124 @@
-from fastapi import FastAPI, status, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+"""
+Todo AI Chatbot - FastAPI Application Entry Point.
+"""
+
+import logging
 from contextlib import asynccontextmanager
-import os
-import sys
-import traceback
-from dotenv import load_dotenv
 
-# Load environment variables FIRST before any other imports
-load_dotenv()
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 
-# Verify DATABASE_URL is loaded
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL:
-    print(f"[STARTUP] DATABASE_URL loaded: {DATABASE_URL[:30]}...")
-else:
-    print("[ERROR] DATABASE_URL not found in environment")
+from src.api import (
+    auth_router,
+    chat_router,
+    conversations_router,
+    health_router,
+    tasks_router,
+)
+from src.config import get_settings
+from src.database import close_db
+from src.init_db import init_database
+from src.middleware import (
+    AppException,
+    RateLimitMiddleware,
+    app_exception_handler,
+    generic_exception_handler,
+    sqlalchemy_exception_handler,
+)
 
-# Import after dotenv is loaded
-from utils.database import test_connection
-from routes import auth_router, todos_router
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
-# Global flag to track database status
-_db_available = False
-_db_error_message = None
+settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
     Application lifespan manager for startup and shutdown events.
-
-    Startup:
-        - Test database connection (non-blocking)
-        - Attempt to create tables if connection succeeds
-
-    Shutdown:
-        - Close database connections gracefully
     """
-    global _db_available, _db_error_message
-
     # Startup
-    print("[STARTUP] Starting TaskFlow 3D API...")
+    logger.info("Starting Todo AI Chatbot API...")
 
-    # Test database connection without failing startup
     try:
-        print("[STARTUP] Testing database connection...")
-        success, error = test_connection()
-
-        if success:
-            _db_available = True
-            print("[SUCCESS] Database connection verified")
-
-            # Only create tables if connection works
-            try:
-                from utils.database import get_engine
-                from sqlmodel import SQLModel
-                engine = get_engine()
-                # Create tables if they don't exist (don't drop existing data)
-                SQLModel.metadata.create_all(engine)
-                print("[SUCCESS] Database tables verified/created")
-            except Exception as table_error:
-                print(f"[WARNING] Table creation error: {table_error}")
-                _db_error_message = f"Table creation failed: {table_error}"
-        else:
-            _db_available = False
-            _db_error_message = error
-            print(f"[WARNING] Database connection failed: {error[:200]}")
-            print("[WARNING] API starting without database - auth/todo endpoints unavailable")
-
+        await init_database()
+        logger.info("Database initialized successfully")
     except Exception as e:
-        _db_available = False
-        _db_error_message = str(e)
-        print(f"[WARNING] Database startup error: {str(e)[:200]}")
-        print("[WARNING] API starting without database - auth/todo endpoints unavailable")
+        logger.error(f"Database initialization failed: {e}")
+        # Continue anyway - the app can still serve health checks
+        # and provide meaningful error messages
 
-    print("[SUCCESS] TaskFlow 3D API started successfully")
-    print(f"[INFO] Server listening on http://0.0.0.0:{os.getenv('PORT', '8000')}")
-    print(f"[INFO] API Docs: http://localhost:{os.getenv('PORT', '8000')}/docs")
-    print(f"[INFO] Database: {'CONNECTED' if _db_available else 'DISCONNECTED'}")
+    logger.info(f"Server listening on http://0.0.0.0:{settings.port}")
+    logger.info(f"API Docs: http://localhost:{settings.port}/docs")
 
     yield
 
     # Shutdown
-    print("[SHUTDOWN] Shutting down TaskFlow 3D API...")
-    try:
-        if _db_available:
-            from utils.database import get_engine
-            engine = get_engine()
-            engine.dispose()
-            print("[SUCCESS] Database connections closed")
-    except Exception as e:
-        print(f"[WARNING] Shutdown error: {e}")
+    logger.info("Shutting down Todo AI Chatbot API...")
+    await close_db()
+    logger.info("Database connections closed")
 
 
 # Create FastAPI application
 app = FastAPI(
-    title="TaskFlow 3D API",
-    description="Backend API for TaskFlow 3D todo application with JWT authentication",
+    title="Todo AI Chatbot API",
+    description="AI-powered todo management through natural language conversation",
     version="1.0.0",
     lifespan=lifespan,
 )
 
 # Configure CORS
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Add rate limiting middleware
+app.add_middleware(
+    RateLimitMiddleware,
+    requests_limit=settings.rate_limit_requests,
+    window_seconds=settings.rate_limit_window,
+)
+
+# Register exception handlers
+app.add_exception_handler(AppException, app_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
+
 # Include routers
-app.include_router(auth_router)
-app.include_router(todos_router)
+app.include_router(health_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
+app.include_router(chat_router, prefix="/api")
+app.include_router(tasks_router, prefix="/api")
+app.include_router(conversations_router, prefix="/api")
 
 
-# Global exception handler for debugging
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Catch all unhandled exceptions and return detailed error info."""
-    error_detail = {
-        "error": str(exc),
-        "type": type(exc).__name__,
-        "path": str(request.url.path),
-        "traceback": traceback.format_exc()
-    }
-    print(f"[UNHANDLED ERROR] {error_detail}")
-    return JSONResponse(
-        status_code=500,
-        content={"detail": str(exc), "type": type(exc).__name__}
-    )
-
-
-@app.get("/", status_code=status.HTTP_200_OK)
+@app.get("/")
 async def root():
-    """
-    Root endpoint to verify API is running.
-
-    Returns:
-        dict: API status and version information
-    """
+    """Root endpoint with API information."""
     return {
-        "message": "Welcome to TaskFlow 3D API",
+        "message": "Welcome to Todo AI Chatbot API",
         "version": "1.0.0",
-        "status": "running",
-        "database": "connected" if _db_available else "disconnected",
         "docs": "/docs",
-        "redoc": "/redoc"
+        "health": "/api/health",
     }
-
-
-@app.get("/health", status_code=status.HTTP_200_OK)
-async def health_check():
-    """
-    Health check endpoint for monitoring.
-
-    Returns:
-        dict: Service health status including database connectivity
-    """
-    if not _db_available:
-        return {
-            "status": "degraded",
-            "database": "disconnected",
-            "error": _db_error_message or "Database not available",
-            "service": "TaskFlow 3D API",
-            "note": "Server is running but database connection failed. Check DATABASE_URL in .env"
-        }
-
-    # Perform live database check
-    success, error = test_connection()
-
-    if success:
-        return {
-            "status": "healthy",
-            "database": "connected",
-            "service": "TaskFlow 3D API"
-        }
-    else:
-        return {
-            "status": "degraded",
-            "database": "disconnected",
-            "error": error[:200] if error else "Unknown error",
-            "service": "TaskFlow 3D API"
-        }
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    # Get port from environment or default to 8000
-    port = int(os.getenv("PORT", "8000"))
-
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
-        port=port,
-        reload=True,  # Enable auto-reload during development
-        log_level="info"
+        port=settings.port,
+        reload=True,
+        log_level="info",
     )
